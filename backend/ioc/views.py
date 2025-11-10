@@ -1,22 +1,34 @@
 from rest_framework import viewsets, decorators, response
+from rest_framework.permissions import AllowAny  # 👈 add this
+
 from .models import IOC, Source, Correlation
 from .serializers import IOCSerializer, SourceSerializer, CorrelationSerializer
 from .correlation import correlate
+
 
 class SourceViewSet(viewsets.ModelViewSet):
     queryset = Source.objects.all()
     serializer_class = SourceSerializer
 
+
 class IOCViewSet(viewsets.ModelViewSet):
     queryset = IOC.objects.all().order_by("-last_seen")
     serializer_class = IOCSerializer
-    filterset_fields = ["ioc_type","source__name"]
+    filterset_fields = ["ioc_type", "source__name"]
+
 
 class CorrelationViewSet(viewsets.ModelViewSet):
     queryset = Correlation.objects.all().order_by("-created_at")
     serializer_class = CorrelationSerializer
 
+
 @decorators.api_view(["POST"])
+@decorators.permission_classes([AllowAny])   # 👈 allow unauthenticated access
 def correlate_now(request):
+    """
+    Trigger the server-side correlation engine.
+
+    Returns: {"created": <number_of_new_correlations>}
+    """
     created = correlate()
     return response.Response({"created": created})
